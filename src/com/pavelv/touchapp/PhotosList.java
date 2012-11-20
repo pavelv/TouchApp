@@ -1,10 +1,16 @@
 package com.pavelv.touchapp;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-
+import android.app.Activity;
+import android.content.Intent;
+import android.os.Bundle;
+import android.os.Handler;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.view.Window;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
+import android.widget.Button;
+import android.widget.GridView;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -13,16 +19,10 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import android.app.Activity;
-import android.content.Intent;
-import android.os.Bundle;
-import android.view.View;
-import android.view.Window;
-import android.view.View.OnClickListener;
-import android.widget.AdapterView;
-import android.widget.Button;
-import android.widget.AdapterView.OnItemClickListener;
-import android.widget.GridView;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 
 public class PhotosList extends Activity {
 
@@ -34,53 +34,74 @@ public class PhotosList extends Activity {
 		super.onCreate(savedInstanceState);
 		this.requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
 		setContentView(R.layout.photos);
-		HttpClient httpclient = new DefaultHttpClient();
-		HttpGet httpget = new HttpGet(
-				"http://api.flickr.com/services/rest/?method=flickr.photosets.getPhotos&format=json&photoset_id=72157627750718372&api_key=dcb74491ec5cbe64deb98b18df1125a9&nojsoncallback=1");
 
-		HttpResponse response;
+		findViewById(R.id.loader).setVisibility(View.VISIBLE);
+		findViewById(R.id.ListView).setVisibility(View.GONE);
 
-		try {
-			response = httpclient.execute(httpget);
-			HttpEntity entity = response.getEntity();
-			InputStream inputstream = entity.getContent();
-			if (entity != null) {
+		final Handler handler = new Handler();
 
-				BufferedReader bufferedreader = new BufferedReader(
-						new InputStreamReader(inputstream));
-				StringBuilder stringbuilder = new StringBuilder();
-				String currentline = null;
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+
+				HttpClient httpclient = new DefaultHttpClient();
+				HttpGet httpget = new HttpGet(
+						"http://api.flickr.com/services/rest/?method=flickr.photosets.getPhotos&format=json&photoset_id=72157627750718372&api_key=dcb74491ec5cbe64deb98b18df1125a9&nojsoncallback=1");
+
+				HttpResponse response;
+
 				try {
-					while ((currentline = bufferedreader.readLine()) != null) {
-						stringbuilder.append(currentline + "\n");
+					response = httpclient.execute(httpget);
+					HttpEntity entity = response.getEntity();
+					InputStream inputstream = entity.getContent();
+					if (entity != null) {
+
+						BufferedReader bufferedreader = new BufferedReader(
+								new InputStreamReader(inputstream));
+						StringBuilder stringbuilder = new StringBuilder();
+						String currentline = null;
+						try {
+							while ((currentline = bufferedreader.readLine()) != null) {
+								stringbuilder.append(currentline + "\n");
+							}
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+						String result = stringbuilder.toString();
+
+						JSONObject thedata = new JSONObject(result);
+						JSONObject thephotosdata = thedata.getJSONObject("photoset");
+						JSONArray thephotodata = thephotosdata.getJSONArray("photo");
+						photos = new FlickrPhoto[thephotodata.length()];
+						for (int i = 0; i < thephotodata.length(); i++) {
+							JSONObject photodata = thephotodata.getJSONObject(i);
+							photos[i] = new FlickrPhoto(photodata.getString("id"),
+									photodata.getString("secret"),
+									photodata.getString("server"),
+									photodata.getString("farm"));
+						}
+						inputstream.close();
 					}
-				} catch (IOException e) {
+				} catch (Exception e) {
 					e.printStackTrace();
 				}
-				String result = stringbuilder.toString();
 
-				JSONObject thedata = new JSONObject(result);
-				JSONObject thephotosdata = thedata.getJSONObject("photoset");
-				JSONArray thephotodata = thephotosdata.getJSONArray("photo");
-				photos = new FlickrPhoto[thephotodata.length()];
-				for (int i = 0; i < thephotodata.length(); i++) {
-					JSONObject photodata = thephotodata.getJSONObject(i);
-					photos[i] = new FlickrPhoto(photodata.getString("id"),
-							photodata.getString("secret"),
-							photodata.getString("server"),
-							photodata.getString("farm"));
-				}
-				inputstream.close();
+				handler.post(new Runnable() {
+					@Override
+					public void run() {
+						GridView gridView = (GridView) findViewById(R.id.ListView);
+						gridView.setVerticalSpacing(0);
+						gridView.setHorizontalSpacing(-20);
+						gridView.setAdapter(new FlickrGalleryAdapter(PhotosList.this, photos));
+						gridView.setOnItemClickListener(itemClickListener);
+
+						findViewById(R.id.loader).setVisibility(View.GONE);
+						findViewById(R.id.ListView).setVisibility(View.VISIBLE);
+					}
+				});
+
 			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-		GridView gridView = (GridView) this.findViewById(R.id.ListView);
-		gridView.setVerticalSpacing(0);
-		gridView.setHorizontalSpacing(-20);
-		gridView.setAdapter(new FlickrGalleryAdapter(this, photos));
-		gridView.setOnItemClickListener(itemClickListener);
+		}).start();
 	}
 
 	private OnItemClickListener itemClickListener = new OnItemClickListener() {

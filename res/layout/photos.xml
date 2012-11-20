@@ -21,7 +21,7 @@
         android:layout_height="fill_parent"
         android:orientation="vertical"
         android:paddingLeft="-20dp"
-        android:paddingRight="-20dp" >
+        android:paddingRight="-20dp">
 
         <RelativeLayout
             android:layout_width="match_parent"
@@ -50,6 +50,17 @@
                 android:layout_alignParentTop="true"
                 android:background="@drawable/play" />
         </RelativeLayout>
+
+	    <RelativeLayout
+			    android:layout_width="fill_parent"
+			    android:layout_height="fill_parent"
+			    android:gravity="center">
+		    <ProgressBar
+				    android:id="@+id/loader"
+				    android:layout_width="wrap_content"
+				    android:layout_height="wrap_content"
+		            />
+	    </RelativeLayout>
 
         <GridView
             android:id="@+id/ListView"
