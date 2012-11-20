@@ -1,0 +1,15 @@
+bin/
+gen/
+.DS_Store
+.idea
+out
+project.properties
+*.iml
+*.ipr
+*.iws
+.idea/
+gen/com/pavelv/touchapp/R.java
+
+gen/com/pavelv/touchapp/R.java
+
+gen/com/pavelv/touchapp/R.java
